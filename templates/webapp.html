@@ -9,13 +9,17 @@
     <!-- Include Leaflet MarkerCluster CSS and JS files -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
+    <!-- Include Leaflet Fullscreen CSS and JS files -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-fullscreen/dist/leaflet.fullscreen.css" />
+    <script src="https://unpkg.com/leaflet-fullscreen/dist/Leaflet.fullscreen.js"></script>
+
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
 </head>
 <body>
-    <div id="map" style="width: 1500px; height: 504px;"></div>>
+    <div id="map" style="width: 1500px; height: 504px;"></div>
     
-    <!-- Dropdown menu for filtering if the plane is on gorund or not -->
+    <!-- Dropdown menu for filtering if the plane is on the ground or not -->
     <div id="onGroundFilter" style="margin-top: 10px;">
         <label for="onGroundDropdown">Filter by On Ground:</label>
         <select id="onGroundDropdown">
@@ -72,26 +76,29 @@
                 popupAnchor: [0, -10]
             });
         }
-        // Add MarkerClusterGroup for clustering markers
-        var markers = L.markerClusterGroup();
 
         // Add markers for each plane location
-        {% for plane in planes %}
-        // Check if latitude and longitude are not null
-        if ({{ plane.latitude }} !== null && {{ plane.longitude }} !== null) {
-            // Convert true_track to rotation angle
-            var rotation = {{ plane.true_track }} - 90;
+            <script>
+            var markers = L.markerClusterGroup();
 
-            var marker = L.marker([{{ plane.latitude }}, {{ plane.longitude }}], {
-                icon: createPlaneIcon(rotation)
-            }).bindPopup('<b>Icao24:</b> {{ plane.icao24 }}<br>' +
-                // ... (previous code)
-                '<b>Category:</b> {{ plane.category }}');
-            
-            markers.addLayer(marker);
-        }
-        {% endfor %}
+            {% for plane in planes %}
+                // Check if latitude and longitude are not null
+                {% if plane.latitude is not none and plane.longitude is not none %}
+                    // Convert true_track to rotation angle
+                    var rotation = {{ plane.true_track }} - 90;
 
+                    var marker = L.marker([{{ plane.latitude }}, {{ plane.longitude }}], {
+                        icon: createPlaneIcon(rotation)
+                    }).bindPopup('<b>Icao24:</b> {{ plane.icao24 }}<br>' +
+                        // ... (previous code)
+                        '<b>Category:</b> {{ plane.category }}');
+                    
+                    markers.addLayer(marker);
+                {% endif %}
+            {% endfor %}
+
+            mymap.addLayer(markers);
+        </script>
     </script>
 </body>
 </html>
