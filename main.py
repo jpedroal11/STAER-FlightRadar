@@ -3,10 +3,13 @@ from sqlalchemy import create_engine, Column, String, Integer
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import time
+import config
+from sqlalchemy import Column, Integer, String, Float
+from sqlalchemy.ext.declarative import declarative_base
 
 # Defina suas credenciais da API OpenSky
-username = "1211066"
-password = "openskystaer"
+username = config.OPENSKY_USERNAME
+password = config.OPENSKY_PASSWORD
 
 # Crie uma sessão no SQLAlchemy para interagir com o banco de dados
 Base = declarative_base()
@@ -19,6 +22,9 @@ class Flight(Base):
     origin_country = Column(String)
     time_position = Column(Integer)
     last_contact = Column(Integer)
+    latitude = Column(Float)    
+    longitude = Column(Float) 
+
 
 # Substitua "sqlite:///opensky_data.db" pelo seu banco de dados, se necessário
 engine = create_engine("sqlite:///opensky_states.db")

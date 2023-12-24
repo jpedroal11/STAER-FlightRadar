@@ -1,22 +1,24 @@
 from flask import Flask, render_template
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, scoped_session
-from main import Flight  # Importe a classe Flight do seu arquivo main.py
+import sqlite3
+from openksylib import OpenSkyApi
 
 app = Flask(__name__)
 
-# Crie uma sessão no SQLAlchemy para interagir com o banco de dados
-engine = create_engine("sqlite:///opensky_states.db")
-session_factory = sessionmaker(bind=engine)
-Session = scoped_session(session_factory)
-
 @app.route('/')
-def home():
-    # Recupere todos os voos da base de dados
-    flights = Session.query(Flight).all()
+def index():
+    # Connect to the SQLite database
+    conn = sqlite3.connect('opensky_states.db')
+    cursor = conn.cursor()
 
-    # Passe os voos para o template
-    return render_template('webapp.html', flights=flights)
+    # Fetch the plane data from the database
+    cursor.execute('SELECT * FROM flights')
+    planes = cursor.fetchall()
 
-if __name__ == '__main__':
+    # Close the connection
+    conn.close()
+
+    # Render the template with plane data
+    return render_template('index.html', planes=planes)
+
+if __name__ == '_main_':
     app.run(debug=True)
