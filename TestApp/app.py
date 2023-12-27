@@ -5,7 +5,7 @@ import requests
 
 app = Flask(__name__)
 CORS(app)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///opensky_states.db'  # Replace with your database URL
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///opensky_states.db'
 db = SQLAlchemy(app)
 
 class Aviao(db.Model):
@@ -39,7 +39,7 @@ def index():
     # Attempt to retrieve data from the API
     api_data = get_data_from_api()
 
-    if api_data:
+    if api_data != []:
         # Use data from the API
         avioes = api_data
     else:
@@ -53,15 +53,19 @@ def dados_avioes():
     # Attempt to retrieve data from the API
     api_data = get_data_from_api()
 
-    if api_data:
+    if api_data != []:
         # Use data from the API
         avioes = api_data
     else:
         # Use data from the database
         avioes = Aviao.query.all()
 
-    # Convert the results to a format that can be jsonify
-    avioes_data = [{'id': aviao.id, 'latitude': aviao.latitude, 'longitude': aviao.longitude} for aviao in avioes]
+    # Check if avioes is None or an empty list
+    if avioes:
+        # Convert the results to a format that can be jsonify
+        avioes_data = [{'id': aviao.id, 'latitude': aviao.latitude, 'longitude': aviao.longitude} for aviao in avioes]
+    else:
+        avioes_data = []
 
     return jsonify(avioes_data)
 
