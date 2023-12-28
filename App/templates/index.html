@@ -76,34 +76,29 @@
         var markers = L.markerClusterGroup();
 
         // Add markers for each plane location
-        {% for plane in planes %}
+        {% for aviao in avioes %}
             // Check if latitude and longitude are not null
-            if ({{ plane.latitude }} !== null && {{ plane.longitude }} !== null) {
+            {% if aviao.latitude is not none and aviao.longitude is not none and aviao.true_track is not none %}
                 // Convert true_track to rotation angle
-                var rotation = {{ plane.true_track }} - 90;
+                var rotation = {{ aviao.true_track }} - 90;
                 
-                var marker = L.marker([{{ plane.latitude }}, {{ plane.longitude }}], {
+                var marker = L.marker([{{ aviao.latitude }}, {{ aviao.longitude }}], {
                     icon: createPlaneIcon(rotation)
-                }).bindPopup('<b>Icao24:</b> {{ plane.icao24 }}<br>' +
-                    '<b>Callsign:</b> {{ plane.callsign }}<br>' +
-                    '<b>Origin Country:</b> {{ plane.origin_country }}<br>' +
-                    '<b>Time Position:</b> {{ plane.time_position }}<br>' +
-                    '<b>Last Contact:</b> {{ plane.last_contact }}<br>' +
-                    '<b>Longitude:</b> {{ plane.longitude }}<br>' +
-                    '<b>Latitude:</b> {{ plane.latitude }}<br>' +
-                    '<b>Geo Altitude:</b>  {% if plane.geo_altitude is not none %}{{ plane.geo_altitude }} meters{% else %}0 meters{% endif %}<br>' +
-                    '<b>On Ground:</b> {{ plane.on_ground }}<br>' +
-                    '<b>Velocity:</b> {% if plane.velocity is not none %}{{ plane.velocity }} meters{% else %}0 meters{% endif %}<br>' +
-                    '<b>True Track:</b> {{ plane.true_track }}<br>' +
-                    '<b>Vertical Rate:</b> {% if plane.vertical_rate is not none %}{{ plane.vertical_rate }} meters{% else %}0 meters{% endif %}<br>' +
-                    '<b>Sensors:</b> {{ plane.sensors }}<br>' +
-                    '<b>Baro Altitude:</b>{% if plane.baro_altitude is not none %}{{ plane.baro_altitude }} meters{% else %}0 meters{% endif %}<br>' +
-                    '<b>Squawk:</b> {{ plane.squawk }}<br>' +
-                    '<b>SPI:</b> {{ plane.spi }}<br>' +
-                    '<b>Position Source:</b> {{ plane.position_source }}<br>' +
-                    '<b>Category:</b> {{ plane.category }}');
+                }).bindPopup('<b>Icao24:</b> {{ aviao.icao24 }}<br>' +
+                    '<b>Callsign:</b> {{ aviao.callsign }}<br>' +
+                    '<b>Origin Country:</b> {{ aviao.origin_country }}<br>' +
+                    '<b>Time Position:</b> {{ aviao.time_position }}<br>' +
+                    '<b>Last Contact:</b> {{ aviao.last_contact }}<br>' +
+                    '<b>Longitude:</b> {{ aviao.longitude }}<br>' +
+                    '<b>Latitude:</b> {{ aviao.latitude }}<br>' +
+                    '<b>Geo Altitude:</b>  {% if aviao.geo_altitude is not none %}{{ aviao.geo_altitude }} meters{% else %}0 meters{% endif %}<br>' +
+                    '<b>On Ground:</b> {{ aviao.on_ground }}<br>' +
+                    '<b>Velocity:</b> {% if aviao.velocity is not none %}{{ aviao.velocity }} meters{% else %}0 meters{% endif %}<br>' +
+                    '<b>True Track:</b> {{ aviao.true_track }}<br>' +
+                    '<b>Vertical Rate:</b> {% if aviao.vertical_rate is not none %}{{ aviao.vertical_rate }} meters{% else %}0 meters{% endif %}<br>' +
+                    '<b>Baro Altitude:</b>{% if aviao.baro_altitude is not none %}{{ aviao.baro_altitude }} meters{% else %}0 meters{% endif %}<br>');
                 markers.addLayer(marker);
-            }
+            {% endif %}
         {% endfor %}
 
     
@@ -129,39 +124,39 @@
             markers.clearLayers();
 
             // Add markers for each plane location
-            {% for plane in planes %}
+            {% for aviao in avioes %}
                 // Check if latitude and longitude are not null
                 if (
-                    {{ plane.latitude }} !== null && {{ plane.longitude }} !== null &&
+                    {{ aviao.latitude }} !== null && {{ aviao.longitude }} !== null &&
                     (
                         (onGroundFilter === 'all') ||
-                        (onGroundFilter === 'true' && {{ plane.on_ground }} === 1) ||
-                        (onGroundFilter === 'false' && {{ plane.on_ground }} === 0)
+                        (onGroundFilter === 'true' && {{ aviao.on_ground }} === 1) ||
+                        (onGroundFilter === 'false' && {{ aviao.on_ground }} === 0)
                     ) &&
-                    ('{{ plane.origin_country }}' === countryFilter || countryFilter === 'all')
+                    ('{{ aviao.origin_country }}' === countryFilter || countryFilter === 'all')
                 ) {
-                    var rotation = {{ plane.true_track }} - 90;
+                    var rotation = {{ aviao.true_track }} - 90;
                     
-                    var marker = L.marker([{{ plane.latitude }}, {{ plane.longitude }}], {
+                    var marker = L.marker([{{ aviao.latitude }}, {{ aviao.longitude }}], {
                         icon: createPlaneIcon(rotation)
-                    }).bindPopup('<b>Icao24:</b> {{ plane.icao24 }}<br>' +
-                        '<b>Callsign:</b> {{ plane.callsign }}<br>' +
-                        '<b>Origin Country:</b> {{ plane.origin_country }}<br>' +
-                        '<b>Time Position:</b> {{ plane.time_position }}<br>' +
-                        '<b>Last Contact:</b> {{ plane.last_contact }}<br>' +
-                        '<b>Longitude:</b> {{ plane.longitude }}<br>' +
-                        '<b>Latitude:</b> {{ plane.latitude }}<br>' +
-                        '<b>Geo Altitude:</b>  {% if plane.geo_altitude is not none %}{{ plane.geo_altitude }} meters{% else %}0 meters{% endif %}<br>' +
-                        '<b>On Ground:</b> {{ plane.on_ground }}<br>' +
-                        '<b>Velocity:</b> {% if plane.velocity is not none %}{{ plane.velocity }} meters{% else %}0 meters{% endif %}<br>' +
-                        '<b>True Track:</b> {{ plane.true_track }}<br>' +
-                        '<b>Vertical Rate:</b> {% if plane.vertical_rate is not none %}{{ plane.vertical_rate }} meters{% else %}0 meters{% endif %}<br>' +
-                        '<b>Sensors:</b> {{ plane.sensors }}<br>' +
-                        '<b>Baro Altitude:</b>{% if plane.baro_altitude is not none %}{{ plane.baro_altitude }} meters{% else %}0 meters{% endif %}<br>' +
-                        '<b>Squawk:</b> {{ plane.squawk }}<br>' +
-                        '<b>SPI:</b> {{ plane.spi }}<br>' +
-                        '<b>Position Source:</b> {{ plane.position_source }}<br>' +
-                        '<b>Category:</b> {{ plane.category }}');
+                    }).bindPopup('<b>Icao24:</b> {{ aviao.icao24 }}<br>' +
+                        '<b>Callsign:</b> {{ aviao.callsign }}<br>' +
+                        '<b>Origin Country:</b> {{ aviao.origin_country }}<br>' +
+                        '<b>Time Position:</b> {{ aviao.time_position }}<br>' +
+                        '<b>Last Contact:</b> {{ aviao.last_contact }}<br>' +
+                        '<b>Longitude:</b> {{ aviao.longitude }}<br>' +
+                        '<b>Latitude:</b> {{ aviao.latitude }}<br>' +
+                        '<b>Geo Altitude:</b>  {% if aviao.geo_altitude is not none %}{{ aviao.geo_altitude }} meters{% else %}0 meters{% endif %}<br>' +
+                        '<b>On Ground:</b> {{ aviao.on_ground }}<br>' +
+                        '<b>Velocity:</b> {% if aviao.velocity is not none %}{{ aviao.velocity }} meters{% else %}0 meters{% endif %}<br>' +
+                        '<b>True Track:</b> {{ aviao.true_track }}<br>' +
+                        '<b>Vertical Rate:</b> {% if aviao.vertical_rate is not none %}{{ aviao.vertical_rate }} meters{% else %}0 meters{% endif %}<br>' +
+                        '<b>Sensors:</b> {{ aviao.sensors }}<br>' +
+                        '<b>Baro Altitude:</b>{% if aviao.baro_altitude is not none %}{{ aviao.baro_altitude }} meters{% else %}0 meters{% endif %}<br>' +
+                        '<b>Squawk:</b> {{ aviao.squawk }}<br>' +
+                        '<b>SPI:</b> {{ aviao.spi }}<br>' +
+                        '<b>Position Source:</b> {{ aviao.position_source }}<br>' +
+                        '<b>Category:</b> {{ aviao.category }}');
                     markers.addLayer(marker);
                     mymap.setView([0, 0], 2);
                 }

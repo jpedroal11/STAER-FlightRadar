@@ -44,7 +44,25 @@ def index():
     conn.close()
 
     # Render the template with plane data
-    return render_template('index.html', avioes=avioes)
+
+    jsonAvioes = []
+    for aviao in avioes:
+        jsonAvioes.append({
+            "id":aviao[0],
+            "icao24": aviao[1],
+            "callsign": aviao[2],
+            "origin_country": aviao[3], 
+            "time_position": aviao[4],
+            "last_contact": aviao[5],
+            "longitude": aviao[6],
+            "latitude": aviao[7],
+            "baro_altitude": aviao[8],
+            "on_ground": aviao[9],
+            "true_track": aviao[10],
+            "vertical_rate": aviao[11]
+        })
+
+    return render_template('index.html', avioes=jsonAvioes)
 
 @app.route('/dados_avioes')
 def dados_avioes():
@@ -56,18 +74,19 @@ def dados_avioes():
         planes = api_data
     else:
          # Connect to the SQLite database
-        conn = sqlite3.connect('opensky_states.db')
+        conn = sqlite3.connect("opensky_states.db")
         cursor = conn.cursor()
 
         # Fetch the plane data from the database
-        cursor.execute('SELECT * FROM flights')
+        cursor.execute("SELECT * FROM flights")
         planes = cursor.fetchall()
 
         # Close the connection
         conn.close()
 
         # Render the template with plane data
-        return render_template('index.html', planes=planes)
+
+        return render_template("index.html", planes=planes)
 
     # Check if avioes is None or an empty list
     if planes:
