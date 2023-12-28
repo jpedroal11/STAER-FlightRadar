@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenSky Flight Map</title>
+    <!-- Include Leaflet CSS and JS files -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <!-- Include Leaflet MarkerCluster CSS and JS files -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
+</head>
+<body>
+    <div id="map" style="width: 1910px; height: 800px;"></div>
+    
+    <!-- Dropdown menu for filtering if the plane is on gorund or not -->
+    <div id="onGroundFilter" style="margin-top: 10px;">
+        <label for="onGroundDropdown">Filter by On Ground:</label>
+        <select id="onGroundDropdown">
+            <option value="all">All</option>
+            <option value="true">On Ground</option>
+            <option value="false">In the Air</option>
+        </select>
+    </div>
+
+    <!-- Dropdown menu for filtering by origin country -->
+    <div id="countryFilter" style="margin-top: 10px;">
+        <label for="countryDropdown">Filter by Country:</label>
+        <select id="countryDropdown">
+            <option value="all">All</option>
+            {% for country in unique_countries %}
+                <option value="{{ country }}">{{ country }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <!-- Add the custom icon style -->
+    <style>
+        .plane-icon {
+            width: 8px;
+            height: 8px;
+            margin-left: -12px;
+            margin-top: -12px;
+        }
+    </style>
+
+    <!-- Apply button -->
+    <button style="margin-top: 10px; margin-right: 10px;" onclick="applyFilters()">Apply Filters</button>
+    <button onclick="resetFilters()">Reset Filters</button>
+    <script>
+        // Create a Leaflet map centered around a specific location
+        var mymap = L.map('map', {
+            center: [2, 3],
+            zoom: 3,
+            minZoom: 2,
+            maxZoom: 8,
+            worldCopyJump: false,
+            maxBounds: L.latLngBounds(L.latLng(-90, -180), L.latLng(90, 180))
+        });
+        // Replace the OpenStreetMap tile layer with Mapbox
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(mymap);
+
+        // Function to create a custom plane icon with rotation
+        function createPlaneIcon(rotation) {
+            return L.divIcon({
+                className: 'plane-icon',
+                html: `<img src="{{ url_for('static', filename='plane.png') }}" style="transform: rotate(${rotation}deg);width: 20px; height: 20px;">`,               
+                iconAnchor: [8, 8],
+                popupAnchor: [0, -10]
+            });
+        }
+        // Add MarkerClusterGroup for clustering markers
+        var markers = L.markerClusterGroup();
+
+        // Add markers for each plane location
+        {% for plane in planes %}
+            // Check if latitude and longitude are not null
+            if ({{ plane.latitude }} !== null && {{ plane.longitude }} !== null) {
+                // Convert true_track to rotation angle
+                var rotation = {{ plane.true_track }} - 90;
+                
+                var marker = L.marker([{{ plane.latitude }}, {{ plane.longitude }}], {
+                    icon: createPlaneIcon(rotation)
+                }).bindPopup('<b>Icao24:</b> {{ plane.icao24 }}<br>' +
+                    '<b>Callsign:</b> {{ plane.callsign }}<br>' +
+                    '<b>Origin Country:</b> {{ plane.origin_country }}<br>' +
+                    '<b>Time Position:</b> {{ plane.time_position }}<br>' +
+                    '<b>Last Contact:</b> {{ plane.last_contact }}<br>' +
+                    '<b>Longitude:</b> {{ plane.longitude }}<br>' +
+                    '<b>Latitude:</b> {{ plane.latitude }}<br>' +
+                    '<b>Geo Altitude:</b>  {% if plane.geo_altitude is not none %}{{ plane.geo_altitude }} meters{% else %}0 meters{% endif %}<br>' +
+                    '<b>On Ground:</b> {{ plane.on_ground }}<br>' +
+                    '<b>Velocity:</b> {% if plane.velocity is not none %}{{ plane.velocity }} meters{% else %}0 meters{% endif %}<br>' +
+                    '<b>True Track:</b> {{ plane.true_track }}<br>' +
+                    '<b>Vertical Rate:</b> {% if plane.vertical_rate is not none %}{{ plane.vertical_rate }} meters{% else %}0 meters{% endif %}<br>' +
+                    '<b>Sensors:</b> {{ plane.sensors }}<br>' +
+                    '<b>Baro Altitude:</b>{% if plane.baro_altitude is not none %}{{ plane.baro_altitude }} meters{% else %}0 meters{% endif %}<br>' +
+                    '<b>Squawk:</b> {{ plane.squawk }}<br>' +
+                    '<b>SPI:</b> {{ plane.spi }}<br>' +
+                    '<b>Position Source:</b> {{ plane.position_source }}<br>' +
+                    '<b>Category:</b> {{ plane.category }}');
+                markers.addLayer(marker);
+            }
+        {% endfor %}
+
+    
+        // Add the MarkerClusterGroup to the map
+        mymap.addLayer(markers);
+
+         // Function to reset filters
+        function resetFilters() {
+            document.getElementById('onGroundDropdown').value = 'all';
+            document.getElementById('countryDropdown').value = 'all';
+            applyFilters();
+        }
+
+        // Function to apply filters
+        function applyFilters() {
+            var onGroundFilter = document.getElementById('onGroundDropdown').value;
+            var countryFilter = document.getElementById('countryDropdown').value;
+
+            // Update the URL with the selected filters
+            var url = `?on_ground=${onGroundFilter}&country=${countryFilter}`;
+            window.history.pushState({}, '', url);
+
+            markers.clearLayers();
+
+            // Add markers for each plane location
+            {% for plane in planes %}
+                // Check if latitude and longitude are not null
+                if (
+                    {{ plane.latitude }} !== null && {{ plane.longitude }} !== null &&
+                    (
+                        (onGroundFilter === 'all') ||
+                        (onGroundFilter === 'true' && {{ plane.on_ground }} === 1) ||
+                        (onGroundFilter === 'false' && {{ plane.on_ground }} === 0)
+                    ) &&
+                    ('{{ plane.origin_country }}' === countryFilter || countryFilter === 'all')
+                ) {
+                    var rotation = {{ plane.true_track }} - 90;
+                    
+                    var marker = L.marker([{{ plane.latitude }}, {{ plane.longitude }}], {
+                        icon: createPlaneIcon(rotation)
+                    }).bindPopup('<b>Icao24:</b> {{ plane.icao24 }}<br>' +
+                        '<b>Callsign:</b> {{ plane.callsign }}<br>' +
+                        '<b>Origin Country:</b> {{ plane.origin_country }}<br>' +
+                        '<b>Time Position:</b> {{ plane.time_position }}<br>' +
+                        '<b>Last Contact:</b> {{ plane.last_contact }}<br>' +
+                        '<b>Longitude:</b> {{ plane.longitude }}<br>' +
+                        '<b>Latitude:</b> {{ plane.latitude }}<br>' +
+                        '<b>Geo Altitude:</b>  {% if plane.geo_altitude is not none %}{{ plane.geo_altitude }} meters{% else %}0 meters{% endif %}<br>' +
+                        '<b>On Ground:</b> {{ plane.on_ground }}<br>' +
+                        '<b>Velocity:</b> {% if plane.velocity is not none %}{{ plane.velocity }} meters{% else %}0 meters{% endif %}<br>' +
+                        '<b>True Track:</b> {{ plane.true_track }}<br>' +
+                        '<b>Vertical Rate:</b> {% if plane.vertical_rate is not none %}{{ plane.vertical_rate }} meters{% else %}0 meters{% endif %}<br>' +
+                        '<b>Sensors:</b> {{ plane.sensors }}<br>' +
+                        '<b>Baro Altitude:</b>{% if plane.baro_altitude is not none %}{{ plane.baro_altitude }} meters{% else %}0 meters{% endif %}<br>' +
+                        '<b>Squawk:</b> {{ plane.squawk }}<br>' +
+                        '<b>SPI:</b> {{ plane.spi }}<br>' +
+                        '<b>Position Source:</b> {{ plane.position_source }}<br>' +
+                        '<b>Category:</b> {{ plane.category }}');
+                    markers.addLayer(marker);
+                    mymap.setView([0, 0], 2);
+                }
+            {% endfor %}
+            
+            // Add the MarkerClusterGroup to the map
+            mymap.addLayer(markers);
+        }
+    </script>
+</body>
+</html>

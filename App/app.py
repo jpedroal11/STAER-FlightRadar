@@ -2,13 +2,14 @@ from flask import Flask, render_template, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 import requests
+import sqlite3
 
 app = Flask(__name__)
 CORS(app)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///opensky_states.db'
 db = SQLAlchemy(app)
 
-class Aviao(db.Model):
+class Plane(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     icao24 = db.Column(db.String)
     callsign = db.Column(db.String)
@@ -29,23 +30,20 @@ def get_data_from_api():
         print(f"Error fetching data from API: {e}")
         return []
 
-# Move the create_all() inside the app context, and drop existing tables first
-with app.app_context():
-    db.drop_all()
-    db.create_all()
-
 @app.route('/')
 def index():
-    # Attempt to retrieve data from the API
-    api_data = get_data_from_api()
+     # Connect to the SQLite database
+    conn = sqlite3.connect('opensky_states.db')
+    cursor = conn.cursor()
 
-    if api_data != []:
-        # Use data from the API
-        avioes = api_data
-    else:
-        # Use data from the database
-        avioes = Aviao.query.all()
+    # Fetch the plane data from the database
+    cursor.execute('SELECT * FROM flights')
+    avioes = cursor.fetchall()
 
+    # Close the connection
+    conn.close()
+
+    # Render the template with plane data
     return render_template('index.html', avioes=avioes)
 
 @app.route('/dados_avioes')
@@ -55,19 +53,30 @@ def dados_avioes():
 
     if api_data != []:
         # Use data from the API
-        avioes = api_data
+        planes = api_data
     else:
-        # Use data from the database
-        avioes = Aviao.query.all()
+         # Connect to the SQLite database
+        conn = sqlite3.connect('opensky_states.db')
+        cursor = conn.cursor()
+
+        # Fetch the plane data from the database
+        cursor.execute('SELECT * FROM flights')
+        planes = cursor.fetchall()
+
+        # Close the connection
+        conn.close()
+
+        # Render the template with plane data
+        return render_template('index.html', planes=planes)
 
     # Check if avioes is None or an empty list
-    if avioes:
+    if planes:
         # Convert the results to a format that can be jsonify
-        avioes_data = [{'id': aviao.id, 'latitude': aviao.latitude, 'longitude': aviao.longitude} for aviao in avioes]
+        planes_data = [{'id': plane.id, 'latitude': plane.latitude, 'longitude': plane.longitude} for plane in planes]
     else:
-        avioes_data = []
+        planes_data = []
 
-    return jsonify(avioes_data)
+    return jsonify(planes_data)
 
 if __name__ == '__main__':
     app.run(debug=True)
