@@ -4,6 +4,56 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>OpenSky Flight Map</title>
+    <style>
+        body, html {
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        #map {
+            height: 100%;
+            width: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        #popup-bar {
+            position: fixed;
+            top: 0;
+            right: -230px; /* Initially hidden off-screen to the right */
+            width: 250px;
+            height: 100%;
+            background-color: #70939c;
+            z-index: 1000;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            padding: 10px;
+            transition: right 0.3s ease;
+            margin-top: 50px;
+        }
+
+        #popup-bar div {
+            margin-bottom: 20px; /* Increase the space between the menu items */
+        }
+
+        #settings-icon {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            z-index: 1001;
+            cursor: pointer;
+        }
+
+        #settings-icon img {
+            width: 24px;
+            height: 24px;
+        }
+    </style>
     <!-- Include Leaflet CSS and JS files -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <!-- Include Leaflet MarkerCluster CSS and JS files -->
@@ -13,42 +63,59 @@
     <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
 </head>
 <body>
-    <div id="map" style="width: 1910px; height: 800px;"></div>
-    
-    <!-- Dropdown menu for filtering if the plane is on gorund or not -->
-    <div id="onGroundFilter" style="margin-top: 10px;">
-        <label for="onGroundDropdown">Filter by On Ground:</label>
-        <select id="onGroundDropdown">
-            <option value="all">All</option>
-            <option value="true">On Ground</option>
-            <option value="false">In the Air</option>
-        </select>
+    <div id="popup-bar">
+        <!-- Dropdown menu for filtering if the plane is on the ground or not -->
+        <div id="onGroundFilter">
+            <label for="onGroundDropdown">Position Filter:</label>
+            <select id="onGroundDropdown">
+                <option value="all">All</option>
+                <option value="true">On The Ground</option>
+                <option value="false">In the Air</option>
+            </select>
+        </div>
+
+        <!-- Dropdown menu for filtering by origin country -->
+        <div id="countryFilter">
+            <label for="countryDropdown">Country Filter:</label>
+            <select id="countryDropdown">
+                <option value="all">All</option>
+                {% for country in unique_countries %}
+                    <option value="{{ country }}">{{ country }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Apply and Reset buttons -->
+        <div>
+            <button style="margin-right: 10px;" onclick="applyFilters()">Apply Filters</button>
+            <button onclick="resetFilters()">Reset Filters</button>
+        </div>
     </div>
 
-    <!-- Dropdown menu for filtering by origin country -->
-    <div id="countryFilter" style="margin-top: 10px;">
-        <label for="countryDropdown">Filter by Country:</label>
-        <select id="countryDropdown">
-            <option value="all">All</option>
-            {% for country in unique_countries %}
-                <option value="{{ country }}">{{ country }}</option>
-            {% endfor %}
-        </select>
+    <div id="settings-icon" onclick="toggleMenu()">
+        <img src="{{ url_for('static', filename='settings.png') }}" alt="Settings">
     </div>
-    <!-- Add the custom icon style -->
-    <style>
-        .plane-icon {
-            width: 8px;
-            height: 8px;
-            margin-left: -12px;
-            margin-top: -12px;
-        }
-    </style>
 
-    <!-- Apply button -->
-    <button style="margin-top: 10px; margin-right: 10px;" onclick="applyFilters()">Apply Filters</button>
-    <button onclick="resetFilters()">Reset Filters</button>
+    <div id="map" style="width: 100%; height: 100%;"></div>
+
     <script>
+        var menuOpen = false;
+
+        function toggleMenu() {
+            menuOpen = !menuOpen;
+            var popupBar = document.getElementById('popup-bar');
+            var map = document.getElementById('map');
+            var settingsIcon = document.getElementById('settings-icon');
+
+            if (menuOpen) {
+                popupBar.style.right = '0';
+                map.style.overflowX = 'hidden';
+            } else {
+                popupBar.style.right = '-250px';
+                map.style.overflowX = 'auto';
+            }
+        }
+
         // Create a Leaflet map centered around a specific location
         var mymap = L.map('map', {
             center: [2, 3],
@@ -67,11 +134,12 @@
         function createPlaneIcon(rotation) {
             return L.divIcon({
                 className: 'plane-icon',
-                html: `<img src="{{ url_for('static', filename='plane.png') }}" style="transform: rotate(${rotation}deg);width: 20px; height: 20px;">`,               
+                html: `<img src="{{ url_for('static', filename='plane.png') }}" style="transform: rotate(${rotation}deg);width: 20px; height: 20px;">`,
                 iconAnchor: [8, 8],
                 popupAnchor: [0, -10]
             });
         }
+
         // Add MarkerClusterGroup for clustering markers
         var markers = L.markerClusterGroup();
 
@@ -81,7 +149,7 @@
             {% if aviao.latitude is not none and aviao.longitude is not none and aviao.true_track is not none %}
                 // Convert true_track to rotation angle
                 var rotation = {{ aviao.true_track }} - 90;
-                
+
                 var marker = L.marker([{{ aviao.latitude }}, {{ aviao.longitude }}], {
                     icon: createPlaneIcon(rotation)
                 }).bindPopup('<b>Icao24:</b> {{ aviao.icao24 }}<br>' +
@@ -101,11 +169,10 @@
             {% endif %}
         {% endfor %}
 
-    
         // Add the MarkerClusterGroup to the map
         mymap.addLayer(markers);
 
-         // Function to reset filters
+        // Function to reset filters
         function resetFilters() {
             document.getElementById('onGroundDropdown').value = 'all';
             document.getElementById('countryDropdown').value = 'all';
@@ -136,7 +203,7 @@
                     ('{{ aviao.origin_country }}' === countryFilter || countryFilter === 'all')
                 ) {
                     var rotation = {{ aviao.true_track }} - 90;
-                    
+
                     var marker = L.marker([{{ aviao.latitude }}, {{ aviao.longitude }}], {
                         icon: createPlaneIcon(rotation)
                     }).bindPopup('<b>Icao24:</b> {{ aviao.icao24 }}<br>' +
@@ -161,7 +228,7 @@
                     mymap.setView([0, 0], 2);
                 }
             {% endfor %}
-            
+
             // Add the MarkerClusterGroup to the map
             mymap.addLayer(markers);
         }
