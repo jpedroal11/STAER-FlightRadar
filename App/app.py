@@ -1,4 +1,4 @@
-from flask import Flask, render_template, jsonify
+from flask import Flask, render_template, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 import requests
@@ -32,14 +32,31 @@ def get_data_from_api():
 
 @app.route('/')
 def index():
+
+    # Retrieve filter values from request parameters
+    on_ground_filter = request.args.get('on_ground_filter', 'all')
+    country_filter = request.args.get('country_filter', 'all')
+
+
      # Connect to the SQLite database
     conn = sqlite3.connect('opensky_states.db')
     cursor = conn.cursor()
 
     # Fetch the plane data from the database
-    cursor.execute('SELECT * FROM flights')
+
+    query = "SELECT * FROM flights WHERE latitude IS NOT NULL AND longitude IS NOT NULL"
+        
+    #query = "SELECT * FROM flights WHERE 1"
+    if on_ground_filter != 'all':
+        query += f" AND on_ground = {1 if on_ground_filter == 'true' else 0}"
+    if country_filter != 'all':
+        query += f" AND origin_country = '{country_filter}'"
+
+    cursor.execute(query)
     avioes = cursor.fetchall()
 
+    cursor.execute('SELECT name FROM countries ORDER BY name')
+    unique_countries = [row[0] for row in cursor.fetchall()]
     # Close the connection
     conn.close()
 
@@ -58,14 +75,21 @@ def index():
             "latitude": aviao[7],
             "baro_altitude": aviao[8],
             "on_ground": aviao[9],
-            "true_track": aviao[10],
-            "vertical_rate": aviao[11]
+            "velocity": aviao[10],
+            "true_track": aviao[11],
+            "vertical_rate": aviao[12],
+            "geo_altitude": aviao[14]
         })
 
-    return render_template('index.html', avioes=jsonAvioes)
+    return render_template('index.html', avioes=jsonAvioes, unique_countries = unique_countries)
 
 @app.route('/dados_avioes')
 def dados_avioes():
+
+    # Retrieve filter values from request parameters
+    on_ground_filter = request.args.get('on_ground_filter', 'all')
+    country_filter = request.args.get('country_filter', 'all')
+
     # Attempt to retrieve data from the API
     api_data = get_data_from_api()
 
@@ -78,15 +102,25 @@ def dados_avioes():
         cursor = conn.cursor()
 
         # Fetch the plane data from the database
-        cursor.execute("SELECT * FROM flights")
+        query = "SELECT * FROM flights WHERE 1"
+
+        if on_ground_filter != 'all':
+            query += f" AND on_ground = {1 if on_ground_filter == 'true' else 0}"
+        if country_filter != 'all':
+            query += f" AND origin_country = '{country_filter}'"
+
+        cursor.execute(query)
         planes = cursor.fetchall()
+
+        cursor.execute('SELECT name FROM countries ORDER BY name')
+        unique_countries = [row[0] for row in cursor.fetchall()]
 
         # Close the connection
         conn.close()
 
         # Render the template with plane data
 
-        return render_template("index.html", planes=planes)
+        return render_template("index.html", planes=planes, unique_countries=unique_countries)
 
     # Check if avioes is None or an empty list
     if planes:
