@@ -1,7 +1,7 @@
 # STAER
-Project STAER
+Project STAER - 1211066 - José Leal
 
-Assumindo que o utilizador está a correr esta webApp já tem o python instalado na sua máquina local, segue abaixo uma pequena lista de comandos necessários para a execução da aplicação:
+Assumindo que o utilizador que está a correr esta webApp, já tem o python instalado na sua máquina local, segue abaixo uma pequena lista de comandos necessários para a execução da aplicação:
 
 - pip3 install flask (Instala o Flask, um framework utilizado para criar uma aplicação web)
 
